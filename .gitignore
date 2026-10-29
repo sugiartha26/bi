@@ -1,7 +1,0 @@
-.env
-.venv/
-__pycache__/
-.playwright-browsers/
-data/*.sqlite3
-data/*.db
-data/debug_bi.html
