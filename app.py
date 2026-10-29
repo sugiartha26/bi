@@ -28,9 +28,13 @@ def scrape_via_worker(headless: bool):
         command = [sys.executable, str(BASE_DIR / "scraper_worker.py"),
                    "--output", str(result_file),
                    "--headless", "true" if headless else "false"]
+        env = os.environ.copy()
+        if sys.platform.startswith("linux"):
+            # Shared location for browser installer and Playwright worker.
+            env["PLAYWRIGHT_BROWSERS_PATH"] = str(BASE_DIR / ".playwright-browsers")
         proc = subprocess.run(
             command, cwd=str(BASE_DIR), capture_output=True, text=True,
-            timeout=180, check=False
+            timeout=420, check=False, env=env
         )
         if proc.returncode != 0:
             detail = (proc.stderr or proc.stdout or "Unknown worker failure").strip()
@@ -50,8 +54,13 @@ st.caption("Data bersumber dari tabel Kurs Transaksi pada situs Bank Indonesia. 
 
 with st.sidebar:
     st.header("⚙️ Sinkronisasi")
-    headless = st.toggle("Browser tanpa tampilan (headless)", value=os.getenv("HEADLESS", "false").lower() == "true",
-                         help="Nonaktifkan pada Windows/desktop sesuai konfigurasi scraper yang telah berhasil.")
+    is_cloud = sys.platform.startswith("linux")
+    headless = st.toggle("Browser tanpa tampilan (headless)",
+                         value=True if is_cloud else os.getenv("HEADLESS", "false").lower() == "true",
+                         disabled=is_cloud,
+                         help="Linux/Streamlit Cloud memerlukan headless=True. Pada Windows lokal boleh False.")
+    if is_cloud:
+        st.caption("Linux/Cloud: browser otomatis dijalankan tanpa tampilan. Instalasi Chromium pertama kali mungkin memerlukan waktu.")
     if st.button("🔄 Ambil dan simpan kurs", type="primary", use_container_width=True):
         with st.spinner("Membuka halaman BI dan membaca tabel kurs..."):
             try:
